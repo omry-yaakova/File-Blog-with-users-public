@@ -11,16 +11,18 @@ from forms import CreatePostForm
 from flask_gravatar import Gravatar
 import os
 import forms
+import dotenv
 
 
-
+os.environ["SECRETE_KEY"] = str(os.urandom(8))
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(8)
+app.config['SECRET_KEY'] = os.environ["SECRETE_KEY"]
 ckeditor = CKEditor(app)
 Bootstrap(app)
 
+
 ##CONNECT TO DB
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = dotenv.get_key(".env", "SQLALCHEMY_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -59,18 +61,6 @@ def admin_only(f):
 def get_email_by_id(id):
     user = db.session.query(User).filter(User.id == int(id)).first()
     return user.email
-
-
-# def login_required(f):
-#     @wraps(f)
-#     def decorated_function(*args, **kwargs):
-#         #If id is not 1 then return abort with 403 error
-#         if current_user.get_id():
-#             flash("You need to login in order to leave a comment.")
-#             return redirect(url_for('login'))
-#         #Otherwise continue with the route function
-#         return f(*args, **kwargs)
-#     return decorated_function
 
 
 @login_manager.user_loader
@@ -177,6 +167,7 @@ def logout():
 
 
 @app.route("/post/<int:post_id>", methods=['GET', 'POST'])
+@login_required
 def show_post(post_id):
     comments = db.session.query(Comment).filter(Comment.post_id == post_id).all()
     form = forms.CreateCommentForm()
